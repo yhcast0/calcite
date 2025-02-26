@@ -36,6 +36,9 @@ import org.apache.calcite.util.Util;
 
 import org.apache.kylin.guava30.shaded.common.base.Preconditions;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.AbstractList;
 import java.util.List;
 import java.util.function.UnaryOperator;
@@ -51,6 +54,8 @@ import static java.util.Objects.requireNonNull;
  * A collection of return-type inference strategies.
  */
 public abstract class ReturnTypes {
+  private static final Logger log = LoggerFactory.getLogger(ReturnTypes.class);
+
   private ReturnTypes() {
   }
 
@@ -585,6 +590,33 @@ public abstract class ReturnTypes {
     }
     return null;
   };
+
+  public static final SqlReturnTypeInference DECIMAL_SCALE_SMALL = opBinding -> {
+    log.debug("yhdebug ==>> DECIMAL_SCALE_SMALL operand count: {}", opBinding.getOperandCount());
+    RelDataType type1 = opBinding.getOperandType(0);
+    Integer type2 = opBinding.getOperandLiteralValue(1, Integer.class);
+    if (SqlTypeUtil.isDecimal(type1)) {
+      int p = type1.getPrecision();
+      int originalScale = type1.getScale();
+      int targetScale = type2 == null ? 0 : type2;
+      RelDataType ret;
+      ret = opBinding.getTypeFactory().createSqlType(
+          SqlTypeName.DECIMAL,
+          p,
+          Math.max(Math.min(originalScale, targetScale), 0)
+      );
+      if (type1.isNullable()) {
+        ret =
+            opBinding.getTypeFactory()
+                .createTypeWithNullability(ret, true);
+      }
+      return ret;
+    }
+    return null;
+  };
+
+  public static final SqlReturnTypeInference ARG0_OR_SCALE_SMALL_NULLABLE =
+      DECIMAL_SCALE_SMALL.orElse(ARG0_NULLABLE);
 
   /**
    * return long type for all numeric type.
