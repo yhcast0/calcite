@@ -592,9 +592,11 @@ public abstract class ReturnTypes {
   };
 
   public static final SqlReturnTypeInference DECIMAL_SCALE_SMALL = opBinding -> {
-    log.debug("yhdebug ==>> DECIMAL_SCALE_SMALL operand count: {}", opBinding.getOperandCount());
     RelDataType type1 = opBinding.getOperandType(0);
-    Integer type2 = opBinding.getOperandLiteralValue(1, Integer.class);
+    Integer type2 = 0;
+    if (opBinding.getOperandCount() == 2) {
+      type2 = opBinding.getOperandLiteralValue(1, Integer.class);
+    }
     if (SqlTypeUtil.isDecimal(type1)) {
       int p = type1.getPrecision();
       int originalScale = type1.getScale();
